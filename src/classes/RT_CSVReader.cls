@@ -3,6 +3,7 @@ public class RT_CSVReader implements Iterable<List<String>>, Iterator<List<Strin
 	private final static String COMMA = ',';
 	private final static String CR = '\r';
 	private final static String LF = '\n';
+	@TestVisible
 	private final static String CRLF = '\r\n';
 	private final static String QUOTE = '"';
 	private final static String DOUBLE_QUOTE = '""';
@@ -49,13 +50,13 @@ public class RT_CSVReader implements Iterable<List<String>>, Iterator<List<Strin
 		Integer startPos = position;
 		
 		String currentValue;
-		Integer cAt, nlAt, foundAt;
+		Integer cAt, nlAt, foundAt; // , dqAt
 		
 		List<String> tmpValues = new List<String>();
 		while (position < csvStringLength) {
 			cAt = csvString.indexOf(COMMA, position);
 			nlAt = csvString.indexOf(LF, position);
-			foundAt = Math.min(cAt, nlAt);
+			foundAt = Math.min(cAt, nlAt); 
 			
 			if (foundAt < 0) {
 				foundAt = Math.max(cAt, nlAt);
@@ -63,8 +64,7 @@ public class RT_CSVReader implements Iterable<List<String>>, Iterator<List<Strin
 			if (foundAt < 0) {
 				currentValue = csvString.substring(startPos);
 				position = csvStringLength;
-			}
-			else {
+			} else {
 				currentValue = csvString.substring(startPos, foundAt);
 				position = foundAt + 1;
 			}
@@ -85,9 +85,27 @@ public class RT_CSVReader implements Iterable<List<String>>, Iterator<List<Strin
 				startPos = position;
 			}
 			else if (currentValue.endsWith(QUOTE)) {
+				
 				Integer lastIndex = currentValue.length() - 1;
-				tmpValues.add(currentValue.substring(1, lastIndex));
-				if (foundAt == nlAt) {
+				//System.assertNotEquals(0, lastIndex, '['+currentValue+']');
+
+				currentValue = currentValue.substring(1, lastIndex);
+
+				// Does it contain double quoted quotes?
+				Integer doubleQuotedQuotesIndex = currentValue.indexOf(DOUBLE_QUOTE);
+				if(doubleQuotedQuotesIndex >= 0) {
+				    // Replace double quoted quotes with double quotes.
+				    currentValue = currentValue.replace(DOUBLE_QUOTE, QUOTE);
+				}
+
+				// Renormalize on CRLF as the line seperator.
+				Integer lfIndex = currentValue.indexOf(LF);
+				if(lfIndex > 0) {
+				    currentValue = currentValue.replace(LF, CRLF);
+				}
+
+				tmpValues.add(currentValue);
+                		if (foundAt == nlAt) {
 					break;
 				}
 				startPos = position;
